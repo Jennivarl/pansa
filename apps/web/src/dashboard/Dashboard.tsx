@@ -73,9 +73,9 @@ export function Dashboard() {
     });
   }
 
-  async function refresh(k = keys) {
+  async function refresh(k = keys): Promise<FoundPayment[] | undefined> {
     if (!k || !client || !info || !wallet.address) return;
-    await run('Scanning Arc for your payments…', async () => {
+    return run('Scanning Arc for your payments…', async () => {
       const [found, onRegistry, bal] = await Promise.all([
         findPayments(k, client, info.contracts.usdc),
         lookupStealthId(client, wallet.address!, info.contracts.registry).catch(() => undefined),
@@ -86,11 +86,12 @@ export function Dashboard() {
         !!onRegistry && stealthMetaAddressToBytes(onRegistry) === stealthMetaAddressToBytes(getStealthMetaAddress(k)),
       );
       setWalletBalance(bal);
+      return found;
     });
   }
 
   async function requestTestPayment() {
-    await run('Our agent is paying you (two transactions, a few seconds)…', async () => {
+    const sent = await run('Our agent is paying you (two transactions, a few seconds)…', async () => {
       const res = await fetch('/api/demo/pay-me', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -99,8 +100,15 @@ export function Dashboard() {
       const body = await res.json();
       if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`);
       setTestPayment(body);
+      return body as { stealthAddress: string; transferTx: string };
     });
-    await refresh();
+    if (!sent) return;
+    // The RPC can lag a block behind the announcement, so keep scanning until it shows up.
+    for (let i = 0; i < 10; i++) {
+      const found = await refresh();
+      if (found?.some((p) => p.stealthAddress.toLowerCase() === sent.stealthAddress.toLowerCase())) return;
+      await new Promise((r) => setTimeout(r, 1500));
+    }
   }
 
   async function register() {

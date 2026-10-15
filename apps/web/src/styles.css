@@ -814,6 +814,9 @@ pre {
   gap: 12px;
   align-content: start;
 }
+.dash-card > * {
+  min-width: 0;
+}
 .dash-card h2,
 .dash-card h3,
 .dash-head h2,
