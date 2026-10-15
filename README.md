@@ -125,6 +125,7 @@ const res = await pay('https://api.example/signals');
 - **Hidden today:** who received each payment. **Visible today:** amounts, timing, and the payer's own address. Hiding amounts is planned on Arc's privacy layer.
 - With a Circle API key, the API server holds only the **viewing key** and can't spend. The keyless trial needs the spending key on the server to sign Circle's seller proof.
 - Circle's Facilitator submits the payments, so it sees them. The public does not.
+- The agent client only pays in allowed assets (USDC on Arc by default) and caps how long a signed authorization stays valid (5 minutes), whatever the 402 asks for.
 - Spending several stealth addresses into one destination links them. The dashboard spends each one separately and warns about merging.
 - Stealth keys derived from a wallet signature need a deterministic signer. The dashboard checks this and warns if the wallet isn't.
 

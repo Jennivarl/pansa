@@ -387,3 +387,48 @@ describe('verified payee (agent knows the seller stealth ID)', () => {
     expect((await res.json()).error).toBe('unknown payTo');
   });
 });
+
+describe('agent client safety', () => {
+  /** A server that asks for a token other than USDC. */
+  function otherToken(inner: typeof fetch): typeof fetch {
+    return async (input, init) => {
+      const res = await inner(input, init);
+      const header = res.headers.get(HEADER_PAYMENT_REQUIRED);
+      if (res.status !== 402 || !header) return res;
+      const offer = decodeHeader<PaymentRequired>(header);
+      offer.accepts = offer.accepts.map((r) => ({ ...r, asset: '0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a' }));
+      return new Response(res.body, { status: 402, headers: { [HEADER_PAYMENT_REQUIRED]: encodeHeader(offer) } });
+    };
+  }
+
+  it('refuses to pay in a token it was not allowed to use', async () => {
+    const payingFetch = createPayingFetch({
+      account: buyer,
+      networks: [NETWORK],
+      maxAmount: 50_000n,
+      fetch: otherToken(api(makeSeller(mockCircle().fetchFn))),
+    });
+    await expect(payingFetch('https://api.example/weather')).rejects.toBeInstanceOf(PaymentRefusedError);
+  });
+
+  it('caps how long a signed authorization stays valid', async () => {
+    const seller = makeSeller(mockCircle().fetchFn, { maxTimeoutSeconds: 86_400 });
+    let validFor = 0;
+    const payingFetch = createPayingFetch({
+      account: buyer,
+      networks: [NETWORK],
+      maxAmount: 50_000n,
+      fetch: async (input, init) => {
+        const sig = new Headers(init?.headers).get(HEADER_PAYMENT_SIGNATURE);
+        if (sig) {
+          const a = decodeHeader<PaymentPayload>(sig).payload.authorization;
+          validFor = Number(a.validBefore) - Math.floor(Date.now() / 1000);
+        }
+        return api(seller)(input, init);
+      },
+    });
+    expect((await payingFetch('https://api.example/weather')).status).toBe(200);
+    expect(validFor).toBeLessThanOrEqual(300);
+    expect(validFor).toBeGreaterThan(250);
+  });
+});

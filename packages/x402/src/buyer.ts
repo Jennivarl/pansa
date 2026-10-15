@@ -1,6 +1,6 @@
 /** Agent side: a fetch that pays x402 v2 `exact` requirements automatically, within a budget. */
 import type { LocalAccount } from 'viem';
-import { generateStealthAddress, type StealthMetaAddress } from '@pansa/core';
+import { ARC_USDC, generateStealthAddress, type Hex, type StealthMetaAddress } from '@pansa/core';
 import { decodeHeader, encodeHeader } from './encoding.js';
 import { signExactPayment } from './eip3009.js';
 import {
@@ -31,6 +31,13 @@ export interface PayingFetchOptions {
   networks: string[];
   /** Max atomic units per request. */
   maxAmount: bigint;
+  /**
+   * Token contracts we will pay in (default: USDC on Arc). The budget is in atomic units,
+   * so without this a server could ask for a different, more valuable token.
+   */
+  assets?: Hex[];
+  /** Cap on how long a signed authorization stays valid, whatever the server asks (default 300s). */
+  maxValidSeconds?: number;
   fetch?: typeof fetch;
   onPayment?: (info: PaidRequestInfo) => void;
   /**
@@ -44,6 +51,7 @@ export class PaymentRefusedError extends Error {}
 
 export function createPayingFetch(opts: PayingFetchOptions): typeof fetch {
   const fetchFn = opts.fetch ?? fetch;
+  const assets = (opts.assets ?? [ARC_USDC]).map((a) => a.toLowerCase());
 
   return async (input, init) => {
     const first = await fetchFn(input, init);
@@ -53,11 +61,15 @@ export function createPayingFetch(opts: PayingFetchOptions): typeof fetch {
     if (!header) return first;
     const required = decodeHeader<PaymentRequired>(header);
     const offered = required.accepts?.find(
-      (r) => r.scheme === 'exact' && opts.networks.includes(r.network) && BigInt(r.amount) <= opts.maxAmount,
+      (r) =>
+        r.scheme === 'exact' &&
+        opts.networks.includes(r.network) &&
+        assets.includes(r.asset?.toLowerCase()) &&
+        BigInt(r.amount) <= opts.maxAmount,
     );
     if (!offered) {
       throw new PaymentRefusedError(
-        `no acceptable payment option (budget ${opts.maxAmount}, offered ${JSON.stringify(required.accepts?.map((r) => [r.network, r.amount]))})`,
+        `no acceptable payment option (budget ${opts.maxAmount}, offered ${JSON.stringify(required.accepts?.map((r) => [r.network, r.asset, r.amount]))})`,
       );
     }
 
@@ -78,7 +90,7 @@ export function createPayingFetch(opts: PayingFetchOptions): typeof fetch {
       resource: required.resource,
       // The seller recognises its payTo from `extra.pansa`, whoever generated it.
       accepted: req,
-      payload: await signExactPayment(opts.account, req),
+      payload: await signExactPayment(opts.account, req, undefined, opts.maxValidSeconds ?? 300),
     };
     const headers = new Headers(init?.headers);
     headers.set(HEADER_PAYMENT_SIGNATURE, encodeHeader(payment));

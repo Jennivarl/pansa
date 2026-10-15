@@ -34,11 +34,15 @@ function typedMessage(auth: ExactEvmAuthorization) {
   };
 }
 
-/** Buyer side: authorize paying exactly `req.amount` to `req.payTo`. */
+/**
+ * Buyer side: authorize paying exactly `req.amount` to `req.payTo`. The authorization
+ * lives for the server's `maxTimeoutSeconds`, capped at `maxValidSeconds`.
+ */
 export async function signExactPayment(
   account: LocalAccount,
   req: PaymentRequirements,
   now = Math.floor(Date.now() / 1000),
+  maxValidSeconds = Infinity,
 ): Promise<ExactEvmPayload> {
   const authorization: ExactEvmAuthorization = {
     from: account.address,
@@ -46,7 +50,7 @@ export async function signExactPayment(
     value: req.amount,
     // Small backdate tolerates clock skew between buyer and chain.
     validAfter: String(now - 600),
-    validBefore: String(now + req.maxTimeoutSeconds),
+    validBefore: String(now + Math.min(req.maxTimeoutSeconds, maxValidSeconds)),
     nonce: bytesToHex(crypto.getRandomValues(new Uint8Array(32))),
   };
   const signature = await account.signTypedData({
