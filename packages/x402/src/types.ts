@@ -1,5 +1,5 @@
 /** x402 v2 wire types. Spec: github.com/coinbase/x402/blob/main/specs/x402-specification-v2.md */
-import type { Hex } from '@pansa/core';
+import type { Hex } from '@pansapay/core';
 
 export const X402_VERSION = 2;
 

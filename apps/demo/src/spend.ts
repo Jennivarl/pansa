@@ -2,17 +2,17 @@
  * Spends straight from a one-time address. On Arc its USDC is also its gas, so it needs
  * no top-up from another wallet (which would link it to the seller).
  *
- *   npm run spend -w @pansa/demo -- <to> [amountUSDC] [stealthAddress]
+ *   npm run spend -w @pansapay/demo -- <to> [amountUSDC] [stealthAddress]
  */
 import { createPublicClient, createWalletClient, erc20Abi, formatUnits, http, isAddress, parseUnits, type Hex } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { ARC_USDC, computeStealthPrivateKey } from '@pansa/core';
-import { JsonFilePaymentStore } from '@pansa/x402/node';
+import { ARC_USDC, computeStealthPrivateKey } from '@pansapay/core';
+import { JsonFilePaymentStore } from '@pansapay/x402/node';
 import { arcChain, dataFile, requireEnv, txUrl, usdc } from './env.js';
 
 const [to, amountArg, fromArg] = process.argv.slice(2);
 if (!to || !isAddress(to)) {
-  console.log('usage: npm run spend -w @pansa/demo -- <to> [amountUSDC] [stealthAddress]');
+  console.log('usage: npm run spend -w @pansapay/demo -- <to> [amountUSDC] [stealthAddress]');
   process.exit(1);
 }
 

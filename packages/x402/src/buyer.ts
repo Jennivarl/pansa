@@ -1,6 +1,6 @@
 /** Agent side: a fetch that pays x402 v2 `exact` requirements automatically, within a budget. */
 import type { LocalAccount } from 'viem';
-import { ARC_USDC, generateStealthAddress, type Hex, type StealthMetaAddress } from '@pansa/core';
+import { ARC_USDC, generateStealthAddress, type Hex, type StealthMetaAddress } from '@pansapay/core';
 import { decodeHeader, encodeHeader } from './encoding.js';
 import { signExactPayment } from './eip3009.js';
 import {

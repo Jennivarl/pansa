@@ -1,5 +1,5 @@
 {
-  "name": "@pansa/web",
+  "name": "@pansapay/web",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -9,8 +9,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@pansa/core": "^0.1.0",
-    "@pansa/x402": "^0.1.0",
+    "@pansapay/core": "^0.1.0",
+    "@pansapay/x402": "^0.1.0",
     "@privy-io/react-auth": "^3.49.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

@@ -10,7 +10,7 @@ import {
   computeStealthPrivateKey,
   generateStealthKeys,
   getStealthMetaAddress,
-} from '@pansa/core';
+} from '@pansapay/core';
 import {
   CircleFacilitator,
   HEADER_PAYMENT_REQUIRED,

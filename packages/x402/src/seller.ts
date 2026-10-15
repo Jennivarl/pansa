@@ -10,7 +10,7 @@ import {
   generateStealthAddress,
   type Hex,
   type StealthMetaAddress,
-} from '@pansa/core';
+} from '@pansapay/core';
 import { isAddressEqual, type Chain } from 'viem';
 import { announceFromStealthAddress, type AnnounceFromStealthArgs } from './direct.js';
 import { decodeHeader, encodeHeader } from './encoding.js';

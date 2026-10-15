@@ -1,5 +1,5 @@
 {
-  "name": "@pansa/x402",
+  "name": "@pansapay/x402",
   "version": "0.1.0",
   "description": "x402 v2 payments to stealth addresses: seller add-on, Circle Facilitator client, paying fetch for agents",
   "type": "module",
@@ -18,15 +18,47 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@pansa/core": "0.1.0",
+    "@pansapay/core": "^0.1.0",
     "viem": "^2.31.0"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",
     "typescript": "^5.8.3",
     "vitest": "^4.1.11"
+  },
+  "keywords": [
+    "x402",
+    "stealth-address",
+    "erc-5564",
+    "privacy",
+    "arc",
+    "usdc",
+    "ai-agents"
+  ],
+  "license": "MIT",
+  "author": "Varl",
+  "homepage": "https://pansapay.xyz",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jennivarl/pansa.git",
+    "directory": "packages/x402"
+  },
+  "bugs": {
+    "url": "https://github.com/Jennivarl/pansa/issues"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

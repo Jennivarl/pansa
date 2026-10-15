@@ -16,7 +16,7 @@ import {
   encodeStealthMetaAddress,
   getStealthMetaAddress,
   stealthMetaAddressToBytes,
-} from '@pansa/core';
+} from '@pansapay/core';
 import {
   CircleFacilitator,
   HEADER_PAYMENT_SIGNATURE,
@@ -25,8 +25,8 @@ import {
   lookupStealthId,
   registerOnBehalf,
   sendStealthPayment,
-} from '@pansa/x402';
-import { JsonFilePaymentStore } from '@pansa/x402/node';
+} from '@pansapay/x402';
+import { JsonFilePaymentStore } from '@pansapay/x402/node';
 import { AnnouncementIndex } from './announcements.js';
 import { IS_MAINNET, NET, arcChain, dataFile, requireEnv, txUrl, usdc } from './env.js';
 

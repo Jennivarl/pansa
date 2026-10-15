@@ -6,8 +6,8 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import type { Hex, PublicClient } from 'viem';
-import { ARC_MAX_LOG_RANGE } from '@pansa/core';
-import { ANNOUNCER_ABI } from '@pansa/x402';
+import { ARC_MAX_LOG_RANGE } from '@pansapay/core';
+import { ANNOUNCER_ABI } from '@pansapay/x402';
 
 export interface IndexOptions {
   /** Blocks per eth_getLogs call; depends on the RPC (Arc's primary allows 5k). */

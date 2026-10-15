@@ -8,8 +8,8 @@ import {
   getStealthMetaAddress,
   stealthMetaAddressToBytes,
   type StealthKeys,
-} from '@pansa/core';
-import { REGISTRY_ABI, lookupStealthId, registrationTypedData } from '@pansa/x402';
+} from '@pansapay/core';
+import { REGISTRY_ABI, lookupStealthId, registrationTypedData } from '@pansapay/x402';
 import { getInfo, short, usd, type Info } from '../api';
 import { Logo } from '../Logo';
 import { arcChainFrom, publicClientFor } from './chain';

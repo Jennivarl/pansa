@@ -4,7 +4,7 @@
  */
 import { existsSync, writeFileSync } from 'node:fs';
 import { generatePrivateKey, privateKeyToAddress } from 'viem/accounts';
-import { ARC_MAINNET, ARC_TESTNET, encodeStealthMetaAddress, generateStealthKeys, getStealthMetaAddress } from '@pansa/core';
+import { ARC_MAINNET, ARC_TESTNET, encodeStealthMetaAddress, generateStealthKeys, getStealthMetaAddress } from '@pansapay/core';
 import { ENV_PATH } from './env.js';
 
 const mainnet = process.argv[2] === 'mainnet';

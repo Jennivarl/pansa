@@ -1,4 +1,4 @@
-import type { Hex } from '@pansa/core';
+import type { Hex } from '@pansapay/core';
 
 /** What a seller needs to find and later spend a payment. */
 export interface ReceivedPayment {

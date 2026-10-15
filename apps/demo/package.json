@@ -1,5 +1,5 @@
 {
-  "name": "@pansa/demo",
+  "name": "@pansapay/demo",
   "version": "0.1.0",
   "private": true,
   "description": "A paid API that takes private x402 payments on Arc, and an agent that buys from it",
@@ -17,8 +17,8 @@
   },
   "dependencies": {
     "@hono/node-server": "^1.14.0",
-    "@pansa/core": "0.1.0",
-    "@pansa/x402": "0.1.0",
+    "@pansapay/core": "0.1.0",
+    "@pansapay/x402": "0.1.0",
     "hono": "^4.6.0",
     "viem": "^2.31.0"
   },

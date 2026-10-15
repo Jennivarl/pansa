@@ -337,7 +337,7 @@ function label(status: Step['status']) {
   return { waiting: 'waiting', paying: 'paying…', paid: 'paid ✓', failed: 'failed' }[status];
 }
 
-const SELLER_SNIPPET = `import { StealthSeller, CircleFacilitator } from '@pansa/x402';
+const SELLER_SNIPPET = `import { StealthSeller, CircleFacilitator } from '@pansapay/x402';
 
 const seller = new StealthSeller({
   meta,                 // your public stealth ID
@@ -353,7 +353,7 @@ const r = await seller.handle(req.headers['payment-signature'], {
 if (!r.paid) return reply(402, r.reply);
 serve(data);`;
 
-const AGENT_SNIPPET = `import { createPayingFetch } from '@pansa/x402';
+const AGENT_SNIPPET = `import { createPayingFetch } from '@pansapay/x402';
 
 const pay = createPayingFetch({
   account,              // agent wallet

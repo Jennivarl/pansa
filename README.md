@@ -100,13 +100,13 @@ npm test                          # core + x402
 Demo on Arc testnet:
 
 ```sh
-npm run setup -w @pansa/demo      # writes throwaway testnet keys to apps/demo/.env
+npm run setup -w @pansapay/demo      # writes throwaway testnet keys to apps/demo/.env
 # fund the printed agent address at https://faucet.circle.com (Arc Testnet)
-npm run build -w @pansa/web
-npm run api -w @pansa/demo        # http://localhost:4021
-npm run agent -w @pansa/demo      # agent buys from the paid API
-npm run seller -w @pansa/demo     # seller's private view of its payments
-npm run pay -w @pansa/demo -- <0xaddress | st:arc:0x…> 0.01   # pay a registered address or stealth ID
+npm run build -w @pansapay/web
+npm run api -w @pansapay/demo        # http://localhost:4021
+npm run agent -w @pansapay/demo      # agent buys from the paid API
+npm run seller -w @pansapay/demo     # seller's private view of its payments
+npm run pay -w @pansapay/demo -- <0xaddress | st:arc:0x…> 0.01   # pay a registered address or stealth ID
 ```
 
 For the dashboard's email login, set `VITE_PRIVY_APP_ID` in `apps/web/.env` before building. Without it, the dashboard falls back to a browser wallet.
@@ -118,7 +118,7 @@ Server settings: `ARC_NETWORK=mainnet`, `CIRCLE_API_KEY` (production auth; witho
 Seller, in front of any route:
 
 ```ts
-import { CircleFacilitator, StealthSeller } from '@pansa/x402';
+import { CircleFacilitator, StealthSeller } from '@pansapay/x402';
 
 const seller = new StealthSeller({
   meta,                   // your stealth ID (public keys)
@@ -137,7 +137,7 @@ if (!result.paid) return reply(402, result.reply);
 Agent:
 
 ```ts
-import { createPayingFetch } from '@pansa/x402';
+import { createPayingFetch } from '@pansapay/x402';
 
 const pay = createPayingFetch({ account, networks: ['eip155:5042'], maxAmount: 100_000n });
 const res = await pay('https://api.example/signals');

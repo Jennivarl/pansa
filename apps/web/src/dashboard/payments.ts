@@ -9,7 +9,7 @@ import {
   scanAnnouncements,
   type Announcement,
   type StealthKeys,
-} from '@pansa/core';
+} from '@pansapay/core';
 
 export interface FoundPayment {
   stealthAddress: Hex;

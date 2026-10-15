@@ -1,5 +1,5 @@
 {
-  "name": "@pansa/core",
+  "name": "@pansapay/core",
   "version": "0.1.0",
   "description": "ERC-5564 stealth addresses (scheme 1, secp256k1) for PANSA",
   "type": "module",
@@ -14,7 +14,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "@noble/curves": "~1.9.7",
@@ -25,5 +26,34 @@
     "typescript": "^5.8.3",
     "viem": "^2.31.0",
     "vitest": "^4.1.11"
+  },
+  "keywords": [
+    "stealth-address",
+    "erc-5564",
+    "privacy",
+    "arc",
+    "usdc"
+  ],
+  "license": "MIT",
+  "author": "Varl",
+  "homepage": "https://pansapay.xyz",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jennivarl/pansa.git",
+    "directory": "packages/core"
+  },
+  "bugs": {
+    "url": "https://github.com/Jennivarl/pansa/issues"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

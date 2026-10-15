@@ -17,7 +17,7 @@ import {
   generateStealthAddress,
   stealthMetaAddressToBytes,
   type StealthMetaAddress,
-} from '@pansa/core';
+} from '@pansapay/core';
 
 export const ANNOUNCER_ABI = [
   {

@@ -1,8 +1,8 @@
 /** An agent that buys from the demo API with private payments. */
 import { createPublicClient, erc20Abi, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { ARC_USDC } from '@pansa/core';
-import { createPayingFetch } from '@pansa/x402';
+import { ARC_USDC } from '@pansapay/core';
+import { createPayingFetch } from '@pansapay/x402';
 import { API_URL, NET, addressUrl, arcChain, requireEnv, txUrl, usdc } from './env.js';
 
 const account = privateKeyToAccount(requireEnv('AGENT_PRIVATE_KEY'));

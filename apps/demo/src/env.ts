@@ -1,7 +1,7 @@
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineChain, type Hex } from 'viem';
-import { ARC_MAINNET, ARC_TESTNET } from '@pansa/core';
+import { ARC_MAINNET, ARC_TESTNET } from '@pansapay/core';
 
 export const ENV_PATH = fileURLToPath(new URL('../.env', import.meta.url));
 
@@ -9,7 +9,7 @@ try {
   // ARC_NETWORK=mainnet in the shell picks the mainnet key file.
   process.loadEnvFile(process.env.ARC_NETWORK === 'mainnet' ? `${ENV_PATH}.mainnet` : ENV_PATH);
 } catch {
-  // no .env file: rely on the real environment (or run `npm run setup -w @pansa/demo`)
+  // no .env file: rely on the real environment (or run `npm run setup -w @pansapay/demo`)
 }
 
 /** Point at a persistent volume in production. */
@@ -18,7 +18,7 @@ export const WEB_DIST = process.env.WEB_DIST ?? fileURLToPath(new URL('../../web
 
 export function requireEnv(name: string): Hex {
   const value = process.env[name];
-  if (!value) throw new Error(`${name} missing — run: npm run setup -w @pansa/demo`);
+  if (!value) throw new Error(`${name} missing — run: npm run setup -w @pansapay/demo`);
   return value as Hex;
 }
 

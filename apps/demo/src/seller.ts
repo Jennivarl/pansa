@@ -1,8 +1,8 @@
 /** Seller's private view: every one-time address it was paid at, and what each holds now. */
 import { createPublicClient, erc20Abi, http } from 'viem';
 import { privateKeyToAddress } from 'viem/accounts';
-import { ARC_USDC, computeStealthPrivateKey } from '@pansa/core';
-import { JsonFilePaymentStore } from '@pansa/x402/node';
+import { ARC_USDC, computeStealthPrivateKey } from '@pansapay/core';
+import { JsonFilePaymentStore } from '@pansapay/x402/node';
 import { addressUrl, arcChain, dataFile, requireEnv, usdc } from './env.js';
 
 const keys = { spendingKey: requireEnv('SELLER_SPENDING_KEY'), viewingKey: requireEnv('SELLER_VIEWING_KEY') };

@@ -4,8 +4,8 @@
  * payTo; a 401/400 means it did not.
  */
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
-import { computeStealthPrivateKey, getStealthMetaAddress } from '@pansa/core';
-import { CircleFacilitator, FacilitatorError, StealthSeller, X402_VERSION, signExactPayment } from '@pansa/x402';
+import { computeStealthPrivateKey, getStealthMetaAddress } from '@pansapay/core';
+import { CircleFacilitator, FacilitatorError, StealthSeller, X402_VERSION, signExactPayment } from '@pansapay/x402';
 import { NET, requireEnv } from './env.js';
 
 const keys = { spendingKey: requireEnv('SELLER_SPENDING_KEY'), viewingKey: requireEnv('SELLER_VIEWING_KEY') };

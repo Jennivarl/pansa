@@ -2,17 +2,17 @@
  * Mode B from the command line: pay a wallet address (looked up in the ERC-6538 registry)
  * or a stealth ID directly. The agent makes the one-time address and announces it.
  *
- *   npm run pay -w @pansa/demo -- <0xaddress | st:arc:0x…> [amountUSDC]
+ *   npm run pay -w @pansapay/demo -- <0xaddress | st:arc:0x…> [amountUSDC]
  */
 import { createPublicClient, createWalletClient, http, isAddress, parseUnits } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { decodeStealthMetaAddress } from '@pansa/core';
-import { payRegisteredAccount, sendStealthPayment } from '@pansa/x402';
+import { decodeStealthMetaAddress } from '@pansapay/core';
+import { payRegisteredAccount, sendStealthPayment } from '@pansapay/x402';
 import { arcChain, requireEnv, txUrl, usdc } from './env.js';
 
 const [to, amountArg = '0.01'] = process.argv.slice(2);
 if (!to) {
-  console.log('usage: npm run pay -w @pansa/demo -- <0xaddress | st:arc:0x…> [amountUSDC]');
+  console.log('usage: npm run pay -w @pansapay/demo -- <0xaddress | st:arc:0x…> [amountUSDC]');
   process.exit(1);
 }
 
