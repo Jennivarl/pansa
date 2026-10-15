@@ -9,6 +9,8 @@ import type { Hex, PublicClient } from 'viem';
 import { ARC_MAX_LOG_RANGE } from '@pansa/core';
 import { ANNOUNCER_ABI } from '@pansa/x402';
 
+const SYNC_CONCURRENCY = 8;
+
 export interface IndexedAnnouncement {
   schemeId: string;
   stealthAddress: Hex;
@@ -29,6 +31,9 @@ export class AnnouncementIndex {
   private announcements: IndexedAnnouncement[] = [];
   private head = 0n;
   private timer?: NodeJS.Timeout;
+  private loaded = false;
+  private syncedAt = 0;
+  private syncing?: Promise<void>;
 
   constructor(
     private readonly client: PublicClient,
@@ -39,19 +44,12 @@ export class AnnouncementIndex {
     this.nextBlock = fromBlock;
   }
 
+  /** Long-running servers: poll in the background. */
   async start(intervalMs = 4_000) {
-    try {
-      const saved = JSON.parse(await readFile(this.file, 'utf8')) as Saved;
-      if (BigInt(saved.nextBlock) > this.nextBlock) {
-        this.nextBlock = BigInt(saved.nextBlock);
-        this.announcements = saved.announcements;
-      }
-    } catch {
-      // first run
-    }
+    await this.load();
     const tick = async () => {
       try {
-        await this.sync();
+        await this.ensureFresh(0);
       } catch (err) {
         console.error('announcement sync:', (err as Error).message);
       }
@@ -64,20 +62,44 @@ export class AnnouncementIndex {
     clearTimeout(this.timer);
   }
 
-  /** Catches up to the chain head in RPC-sized chunks. */
+  /** Syncs if the last sync is older than `maxAgeMs`; concurrent callers share one sync. */
+  async ensureFresh(maxAgeMs = 3_000) {
+    if (!this.loaded) await this.load();
+    if (Date.now() - this.syncedAt < maxAgeMs) return;
+    this.syncing ??= this.sync().finally(() => {
+      this.syncing = undefined;
+    });
+    await this.syncing;
+  }
+
+  /** Forces a sync that starts after now (e.g. right after we announced something). */
+  async refresh() {
+    await this.syncing;
+    await this.ensureFresh(0);
+  }
+
+  /** Catches up to the chain head in RPC-sized chunks, a few at a time. Not reentrant: use ensureFresh. */
   async sync() {
     this.head = await this.client.getBlockNumber();
-    let changed = false;
-    while (this.nextBlock <= this.head) {
-      const toBlock = this.nextBlock + ARC_MAX_LOG_RANGE - 1n < this.head ? this.nextBlock + ARC_MAX_LOG_RANGE - 1n : this.head;
-      const logs = await this.client.getContractEvents({
-        address: this.announcer,
-        abi: ANNOUNCER_ABI,
-        eventName: 'Announcement',
-        fromBlock: this.nextBlock,
-        toBlock,
-      });
-      for (const log of logs) {
+    const ranges: [bigint, bigint][] = [];
+    for (let from = this.nextBlock; from <= this.head; from += ARC_MAX_LOG_RANGE) {
+      const to = from + ARC_MAX_LOG_RANGE - 1n;
+      ranges.push([from, to < this.head ? to : this.head]);
+    }
+    let found = 0;
+    for (let i = 0; i < ranges.length; i += SYNC_CONCURRENCY) {
+      const batch = await Promise.all(
+        ranges.slice(i, i + SYNC_CONCURRENCY).map(([fromBlock, toBlock]) =>
+          this.client.getContractEvents({
+            address: this.announcer,
+            abi: ANNOUNCER_ABI,
+            eventName: 'Announcement',
+            fromBlock,
+            toBlock,
+          }),
+        ),
+      );
+      for (const log of batch.flat()) {
         this.announcements.push({
           schemeId: log.args.schemeId!.toString(),
           stealthAddress: log.args.stealthAddress!,
@@ -87,15 +109,29 @@ export class AnnouncementIndex {
           blockNumber: log.blockNumber.toString(),
           transactionHash: log.transactionHash,
         });
+        found++;
       }
-      changed ||= logs.length > 0;
-      this.nextBlock = toBlock + 1n;
+      this.nextBlock = ranges[Math.min(i + SYNC_CONCURRENCY, ranges.length) - 1][1] + 1n;
     }
-    if (changed) await this.save();
+    this.syncedAt = Date.now();
+    if (found > 0) await this.save().catch(() => {});
   }
 
   list() {
     return { head: this.head.toString(), announcements: this.announcements };
+  }
+
+  private async load() {
+    this.loaded = true;
+    try {
+      const saved = JSON.parse(await readFile(this.file, 'utf8')) as Saved;
+      if (BigInt(saved.nextBlock) > this.nextBlock) {
+        this.nextBlock = BigInt(saved.nextBlock);
+        this.announcements = saved.announcements;
+      }
+    } catch {
+      // first run, or a read-only/ephemeral disk
+    }
   }
 
   private async save() {

@@ -11,7 +11,8 @@
     "seller": "tsx src/seller.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "check-circle": "tsx src/check-circle.ts",
-    "spend": "tsx src/spend.ts"
+    "spend": "tsx src/spend.ts",
+    "build": "tsc -p tsconfig.build.json"
   },
   "dependencies": {
     "@hono/node-server": "^1.14.0",

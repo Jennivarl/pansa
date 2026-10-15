@@ -1,0 +1,11 @@
+node_modules
+**/dist
+**/.env
+**/.env.*
+apps/demo/data
+contracts/out
+contracts/cache
+contracts/broadcast
+contracts/lib
+PLAN.md
+pansa
