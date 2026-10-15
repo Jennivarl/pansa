@@ -1,14 +1,13 @@
 /** Seller's private view: every one-time address it was paid at, and what each holds now. */
-import { join } from 'node:path';
 import { createPublicClient, erc20Abi, http } from 'viem';
 import { privateKeyToAddress } from 'viem/accounts';
 import { ARC_USDC, computeStealthPrivateKey } from '@pansa/core';
 import { JsonFilePaymentStore } from '@pansa/x402/node';
-import { DATA_DIR, addressUrl, arcChain, requireEnv, usdc } from './env.js';
+import { addressUrl, arcChain, dataFile, requireEnv, usdc } from './env.js';
 
 const keys = { spendingKey: requireEnv('SELLER_SPENDING_KEY'), viewingKey: requireEnv('SELLER_VIEWING_KEY') };
 const client = createPublicClient({ chain: arcChain, transport: http() });
-const payments = await new JsonFilePaymentStore(join(DATA_DIR, 'payments.json')).list();
+const payments = await new JsonFilePaymentStore(dataFile('payments')).list();
 
 if (payments.length === 0) {
   console.log('No payments yet. Run the API and the agent first.');

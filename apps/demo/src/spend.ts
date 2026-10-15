@@ -4,12 +4,11 @@
  *
  *   npm run spend -w @pansa/demo -- <to> [amountUSDC] [stealthAddress]
  */
-import { join } from 'node:path';
 import { createPublicClient, createWalletClient, erc20Abi, formatUnits, http, isAddress, parseUnits, type Hex } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { ARC_USDC, computeStealthPrivateKey } from '@pansa/core';
 import { JsonFilePaymentStore } from '@pansa/x402/node';
-import { DATA_DIR, arcChain, requireEnv, txUrl, usdc } from './env.js';
+import { arcChain, dataFile, requireEnv, txUrl, usdc } from './env.js';
 
 const [to, amountArg, fromArg] = process.argv.slice(2);
 if (!to || !isAddress(to)) {
@@ -22,7 +21,7 @@ const client = createPublicClient({ chain: arcChain, transport: http() });
 const balanceOf = (address: Hex) =>
   client.readContract({ address: ARC_USDC, abi: erc20Abi, functionName: 'balanceOf', args: [address] });
 
-const payments = await new JsonFilePaymentStore(join(DATA_DIR, 'payments.json')).list();
+const payments = await new JsonFilePaymentStore(dataFile('payments')).list();
 const candidates = fromArg ? payments.filter((p) => p.stealthAddress.toLowerCase() === fromArg.toLowerCase()) : payments;
 let payment;
 for (const p of candidates) if ((await balanceOf(p.stealthAddress)) > 0n) payment = p;

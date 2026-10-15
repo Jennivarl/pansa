@@ -3,7 +3,6 @@
  * own agent buys from it, and the announcement feed for the dashboard. Runs as a Node
  * server (api.ts) or a Vercel function (api/index.ts at the repo root).
  */
-import { join } from 'node:path';
 import { Hono, type MiddlewareHandler } from 'hono';
 import { streamSSE } from 'hono/streaming';
 import { createPublicClient, createWalletClient, erc20Abi, http, isAddress, type Hex } from 'viem';
@@ -29,12 +28,12 @@ import {
 } from '@pansa/x402';
 import { JsonFilePaymentStore } from '@pansa/x402/node';
 import { AnnouncementIndex } from './announcements.js';
-import { DATA_DIR, IS_MAINNET, NET, arcChain, requireEnv, txUrl, usdc } from './env.js';
+import { IS_MAINNET, NET, arcChain, dataFile, requireEnv, txUrl, usdc } from './env.js';
 
 const keys = { spendingKey: requireEnv('SELLER_SPENDING_KEY'), viewingKey: requireEnv('SELLER_VIEWING_KEY') };
 const apiKey = process.env.CIRCLE_API_KEY;
 const meta = getStealthMetaAddress(keys);
-const store = new JsonFilePaymentStore(join(DATA_DIR, 'payments.json'));
+const store = new JsonFilePaymentStore(dataFile('payments'));
 
 const seller = new StealthSeller({
   meta,
@@ -184,7 +183,7 @@ export const announcements = new AnnouncementIndex(
   chain,
   PANSA_ANNOUNCER,
   PANSA_DEPLOY_BLOCK[NET.id] ?? 0n,
-  join(DATA_DIR, 'announcements.json'),
+  dataFile('announcements'),
 );
 
 /** Every announcement: the browser matches them with a viewing key it never sends us. */

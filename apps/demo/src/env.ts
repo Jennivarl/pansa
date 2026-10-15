@@ -1,3 +1,4 @@
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineChain, type Hex } from 'viem';
 import { ARC_MAINNET, ARC_TESTNET } from '@pansa/core';
@@ -23,6 +24,9 @@ export function requireEnv(name: string): Hex {
 
 export const IS_MAINNET = process.env.ARC_NETWORK === 'mainnet';
 export const NET = IS_MAINNET ? ARC_MAINNET : ARC_TESTNET;
+
+/** Per-network data file, so testnet and mainnet runs never read each other's state. */
+export const dataFile = (name: string) => join(DATA_DIR, `${name}-${NET.id}.json`);
 
 export const API_PORT = Number(process.env.PORT ?? process.env.API_PORT ?? 4021);
 export const API_URL = process.env.API_URL ?? `http://localhost:${API_PORT}`;
