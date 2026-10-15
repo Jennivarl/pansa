@@ -1,0 +1,32 @@
+{
+  "name": "@pansa/x402",
+  "version": "0.1.0",
+  "description": "x402 v2 payments to stealth addresses: seller add-on, Circle Facilitator client, paying fetch for agents",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./node": {
+      "types": "./dist/node.d.ts",
+      "default": "./dist/node.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@pansa/core": "0.1.0",
+    "viem": "^2.31.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "typescript": "^5.8.3",
+    "vitest": "^4.1.11"
+  }
+}
