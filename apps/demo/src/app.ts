@@ -118,6 +118,7 @@ app.get('/api/info', async (c) => {
     sellerStealthId: encodeStealthMetaAddress(meta),
     agent: agent?.address ?? null,
     endpoints: ENDPOINTS.map((e) => ({ path: e.path, amount: e.amount.toString(), description: e.description })),
+    testPaymentAmount: PAY_ME_AMOUNT.toString(),
     // Totals only. Listing the addresses would link them to this seller.
     stats: {
       payments: payments.length,
@@ -192,7 +193,9 @@ app.get('/api/announcements', async (c) => {
   return c.json(announcements.list());
 });
 
-const PAY_ME_AMOUNT = 1_000n * SCALE;
+// Must exceed the ~$0.002 fee to spend it, so testers can try Send in the dashboard.
+const PAY_ME_AMOUNT = IS_MAINNET ? 5_000n : 10_000n;
+const PAY_ME_DAILY_CAP = Number(process.env.PAY_ME_DAILY_RUNS ?? 20);
 const PAY_ME_COOLDOWN_MS = 60_000;
 const lastPayMeByIp = new Map<string, number>();
 let payMeToday = { day: '', count: 0 };
@@ -210,7 +213,7 @@ app.post('/api/demo/pay-me', async (c) => {
   const ip = c.req.header('x-forwarded-for')?.split(',')[0].trim() ?? 'local';
   const day = new Date().toISOString().slice(0, 10);
   if (payMeToday.day !== day) payMeToday = { day, count: 0 };
-  if (payMeToday.count >= DAILY_RUN_CAP) return c.json({ error: 'Daily demo limit reached. Try again tomorrow.' }, 429);
+  if (payMeToday.count >= PAY_ME_DAILY_CAP) return c.json({ error: 'Daily demo limit reached. Try again tomorrow.' }, 429);
   if (Date.now() - (lastPayMeByIp.get(ip) ?? 0) < PAY_ME_COOLDOWN_MS) {
     return c.json({ error: 'One test payment a minute, please.' }, 429);
   }

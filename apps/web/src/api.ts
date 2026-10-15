@@ -9,6 +9,7 @@ export interface Info {
   sellerStealthId: string;
   agent: string | null;
   endpoints: { path: string; amount: string; description: string }[];
+  testPaymentAmount: string;
   stats: { payments: number; volume: string };
 }
 

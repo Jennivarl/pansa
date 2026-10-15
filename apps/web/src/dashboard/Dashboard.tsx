@@ -213,7 +213,7 @@ export function Dashboard() {
             <div className="panel dash-card">
               <h3>Try it</h3>
               <p className="muted">
-                Our demo agent pays your stealth ID {usd(String(1_000 * (info.mainnet ? 1 : 10)), 3)}: it makes a fresh
+                Our demo agent pays your stealth ID {usd(info.testPaymentAmount, 3)}: it makes a fresh
                 address from your ID, sends USDC there, and announces it on-chain. Then find it below.
               </p>
               <button className="btn primary" onClick={requestTestPayment} disabled={!!busy || !info.agent}>
