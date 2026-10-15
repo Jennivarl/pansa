@@ -1,5 +1,6 @@
 /** Agent side: a fetch that pays x402 v2 `exact` requirements automatically, within a budget. */
 import type { LocalAccount } from 'viem';
+import { generateStealthAddress, type StealthMetaAddress } from '@pansa/core';
 import { decodeHeader, encodeHeader } from './encoding.js';
 import { signExactPayment } from './eip3009.js';
 import {
@@ -17,7 +18,12 @@ export interface PaidRequestInfo {
   url: string;
   requirements: PaymentRequirements;
   settlement?: SettlementResponse;
+  /** True when we derived payTo from the seller's known stealth ID instead of trusting the 402. */
+  payeeVerified: boolean;
 }
+
+/** The seller's stealth ID for a URL, if we know it (e.g. looked up in the ERC-6538 registry). */
+export type PayeeResolver = (url: string) => StealthMetaAddress | undefined | Promise<StealthMetaAddress | undefined>;
 
 export interface PayingFetchOptions {
   account: LocalAccount;
@@ -27,6 +33,11 @@ export interface PayingFetchOptions {
   maxAmount: bigint;
   fetch?: typeof fetch;
   onPayment?: (info: PaidRequestInfo) => void;
+  /**
+   * Pay only this seller. We make the one-time address ourselves from its stealth ID and
+   * ignore the payTo in the 402, so a compromised or spoofed server can't redirect funds.
+   */
+  payee?: StealthMetaAddress | PayeeResolver;
 }
 
 export class PaymentRefusedError extends Error {}
@@ -41,19 +52,31 @@ export function createPayingFetch(opts: PayingFetchOptions): typeof fetch {
     const header = first.headers.get(HEADER_PAYMENT_REQUIRED);
     if (!header) return first;
     const required = decodeHeader<PaymentRequired>(header);
-    const req = required.accepts?.find(
+    const offered = required.accepts?.find(
       (r) => r.scheme === 'exact' && opts.networks.includes(r.network) && BigInt(r.amount) <= opts.maxAmount,
     );
-    if (!req) {
+    if (!offered) {
       throw new PaymentRefusedError(
         `no acceptable payment option (budget ${opts.maxAmount}, offered ${JSON.stringify(required.accepts?.map((r) => [r.network, r.amount]))})`,
       );
     }
 
+    const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+    const payee = typeof opts.payee === 'function' ? await opts.payee(url) : opts.payee;
+    let req = offered;
+    if (payee) {
+      const own = generateStealthAddress(payee);
+      req = {
+        ...offered,
+        payTo: own.stealthAddress,
+        extra: { ...offered.extra, pansa: { v: 1, ephemeralPublicKey: own.ephemeralPublicKey, viewTag: own.viewTag } },
+      };
+    }
+
     const payment: PaymentPayload = {
       x402Version: X402_VERSION,
       resource: required.resource,
-      // Echo the requirements unchanged: the seller recognises its payTo from `extra`.
+      // The seller recognises its payTo from `extra.pansa`, whoever generated it.
       accepted: req,
       payload: await signExactPayment(opts.account, req),
     };
@@ -64,9 +87,10 @@ export function createPayingFetch(opts: PayingFetchOptions): typeof fetch {
     if (paid.ok) {
       const response = paid.headers.get(HEADER_PAYMENT_RESPONSE);
       opts.onPayment?.({
-        url: typeof input === 'string' ? input : input instanceof URL ? input.href : input.url,
+        url,
         requirements: req,
         settlement: response ? decodeHeader<SettlementResponse>(response) : undefined,
+        payeeVerified: !!payee,
       });
     }
     return paid;

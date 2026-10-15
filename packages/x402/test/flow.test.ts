@@ -308,3 +308,82 @@ describe('JsonFilePaymentStore', () => {
     expect(await reopened.claim(saved[0].authorizationId)).toBe(false);
   });
 });
+
+describe('verified payee (agent knows the seller stealth ID)', () => {
+  /** A compromised server: rewrites every 402 to pay the attacker instead. */
+  function hijacked(inner: typeof fetch, attacker: Hex): typeof fetch {
+    return async (input, init) => {
+      const res = await inner(input, init);
+      const header = res.headers.get(HEADER_PAYMENT_REQUIRED);
+      if (res.status !== 402 || !header) return res;
+      const offer = decodeHeader<PaymentRequired>(header);
+      offer.accepts = offer.accepts.map((r) => ({ ...r, payTo: attacker, extra: { name: 'USDC', version: '2' } }));
+      return new Response(res.body, { status: 402, headers: { [HEADER_PAYMENT_REQUIRED]: encodeHeader(offer) } });
+    };
+  }
+
+  it('agent makes its own one-time address; seller accepts it', async () => {
+    const seller = makeSeller(mockCircle().fetchFn);
+    const verified: boolean[] = [];
+    const payingFetch = createPayingFetch({
+      account: buyer,
+      networks: [NETWORK],
+      maxAmount: 50_000n,
+      fetch: api(seller),
+      payee: meta,
+      onPayment: (p) => verified.push(p.payeeVerified),
+    });
+    expect((await payingFetch('https://api.example/weather')).status).toBe(200);
+    const [p] = await seller.store.list();
+    expect(privateKeyToAddress(computeStealthPrivateKey(p.ephemeralPublicKey, sellerKeys))).toBe(p.stealthAddress);
+    expect(verified).toEqual([true]);
+  });
+
+  it('a hijacked 402 cannot redirect the payment', async () => {
+    const seller = makeSeller(mockCircle().fetchFn);
+    const attacker = privateKeyToAddress(generatePrivateKey());
+    const paidTo: string[] = [];
+    const payingFetch = createPayingFetch({
+      account: buyer,
+      networks: [NETWORK],
+      maxAmount: 50_000n,
+      fetch: hijacked(api(seller), attacker),
+      payee: () => meta,
+      onPayment: (p) => paidTo.push(p.requirements.payTo),
+    });
+    expect((await payingFetch('https://api.example/weather')).status).toBe(200);
+    expect(paidTo[0]).not.toBe(attacker);
+    expect((await seller.store.list())[0].stealthAddress).toBe(paidTo[0]);
+  });
+
+  it('without a known payee, the agent would have paid the attacker', async () => {
+    const attacker = privateKeyToAddress(generatePrivateKey());
+    const signedTo: string[] = [];
+    const payingFetch = createPayingFetch({
+      account: buyer,
+      networks: [NETWORK],
+      maxAmount: 50_000n,
+      fetch: async (input, init) => {
+        const sig = new Headers(init?.headers).get(HEADER_PAYMENT_SIGNATURE);
+        if (sig) signedTo.push(decodeHeader<PaymentPayload>(sig).payload.authorization.to);
+        return hijacked(api(makeSeller(mockCircle().fetchFn)), attacker)(input, init);
+      },
+    });
+    await payingFetch('https://api.example/weather');
+    expect(signedTo[0]).toBe(attacker);
+  });
+
+  it('paying a different stealth ID is rejected by the seller', async () => {
+    const seller = makeSeller(mockCircle().fetchFn);
+    const payingFetch = createPayingFetch({
+      account: buyer,
+      networks: [NETWORK],
+      maxAmount: 50_000n,
+      fetch: api(seller),
+      payee: getStealthMetaAddress(generateStealthKeys()),
+    });
+    const res = await payingFetch('https://api.example/weather');
+    expect(res.status).toBe(402);
+    expect((await res.json()).error).toBe('unknown payTo');
+  });
+});
