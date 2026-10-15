@@ -4,6 +4,8 @@
 
 **Live on Arc mainnet:** https://pansapay.xyz
 
+**SDK on npm:** [`@pansapay/x402`](https://www.npmjs.com/package/@pansapay/x402) · [`@pansapay/core`](https://www.npmjs.com/package/@pansapay/core)
+
 AI agents pay for data, tools and other agents in USDC, and every payment is public. Anyone can read an agent's wallet and copy its suppliers, or add up a seller's income and list its customers.
 
 PANSA sends each payment to a fresh **one-time stealth address** that only the seller can open. The explorer shows money leaving the agent, but not who received it.
@@ -115,6 +117,10 @@ Server settings: `ARC_NETWORK=mainnet`, `CIRCLE_API_KEY` (production auth; witho
 
 ## Use it
 
+```sh
+npm install @pansapay/x402 viem
+```
+
 Seller, in front of any route:
 
 ```ts
@@ -154,6 +160,6 @@ const res = await pay('https://api.example/signals');
 
 ## Roadmap
 
-- **Now:** hidden receivers for x402 on Arc, seller add-on, paying fetch with verified payee, pay-by-address via the registry, on-chain announcements for x402 payments, seller dashboard.
-- **Next:** SDK on npm.
+- **Now:** hidden receivers for x402 on Arc, seller add-on, paying fetch with verified payee, pay-by-address via the registry, on-chain announcements for x402 payments, seller dashboard, SDK on npm.
+- **Next:** drop-in middleware for common API frameworks and agent toolkits.
 - **With Arc Privacy:** hidden amounts and selective disclosure with view keys, on the same stealth addresses.

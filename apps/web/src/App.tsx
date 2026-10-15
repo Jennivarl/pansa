@@ -123,7 +123,7 @@ export function App() {
             <CodeWindow file="agent.ts" label="Agent: a fetch that pays, within a budget" code={AGENT_SNIPPET} />
           </div>
           <p className="note">
-            Standard ERC-5564 stealth addresses, tested against ScopeLift's SDK, so any compatible wallet can find
+            Install: <code>npm install @pansapay/x402 viem</code>. Standard ERC-5564 stealth addresses, tested against ScopeLift's SDK, so any compatible wallet can find
             PANSA payments. The registry (ERC-6538) and announcer contracts have no owner and hold no funds.
           </p>
         </section>
@@ -133,11 +133,11 @@ export function App() {
           <ol className="timeline">
             <li className="done">
               <span className="tag now">Now</span>
-              <p>Hidden receivers for x402 on Arc, verified payee, pay-by-address, on-chain announcements, seller dashboard.</p>
+              <p>Hidden receivers for x402 on Arc, verified payee, pay-by-address, on-chain announcements, seller dashboard, SDK on npm.</p>
             </li>
             <li>
               <span className="tag">Next</span>
-              <p>SDK on npm, so any x402 API or agent can add private payments.</p>
+              <p>Drop-in middleware for common API frameworks and agent toolkits.</p>
             </li>
             <li>
               <span className="tag">Arc Privacy</span>
