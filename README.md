@@ -2,7 +2,7 @@
 
 **Private payments for AI agents on Arc.**
 
-**Live on Arc mainnet:** https://pansa-arc.vercel.app
+**Live on Arc mainnet:** https://pansapay.xyz
 
 AI agents pay for data, tools and other agents in USDC, and every payment is public. Anyone can read an agent's wallet and copy its suppliers, or add up a seller's income and list its customers.
 
