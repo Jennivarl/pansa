@@ -2,8 +2,8 @@
  * One wallet interface for the dashboard: Privy (email login + embedded wallet) when an
  * app ID is configured, otherwise the browser's injected wallet (MetaMask etc.).
  */
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { PrivyProvider, usePrivy, useSignMessage, useWallets } from '@privy-io/react-auth';
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { PrivyProvider, useCreateWallet, usePrivy, useSignMessage, useWallets } from '@privy-io/react-auth';
 import type { Chain, EIP1193Provider, Hex } from 'viem';
 
 export interface WalletApi {
@@ -16,6 +16,9 @@ export interface WalletApi {
   signMessage: (message: string) => Promise<Hex>;
   switchChain?: (chainId: number) => Promise<void>;
   unavailable?: string;
+  /** Signed in, but the embedded wallet isn't there yet (being created, or creation failed). */
+  settingUp?: boolean;
+  setupError?: string;
 }
 
 const WalletContext = createContext<WalletApi | null>(null);
@@ -50,8 +53,27 @@ function PrivyWallet({ children }: { children: ReactNode }) {
   const { ready, authenticated, login, logout } = usePrivy();
   const { wallets, ready: walletsReady } = useWallets();
   const { signMessage } = useSignMessage();
-  const embedded = wallets.find((w) => w.walletClientType === 'privy');
+  const { createWallet } = useCreateWallet();
+  const embedded = wallets.find((w) => w.walletClientType?.startsWith('privy'));
   const [provider, setProvider] = useState<EIP1193Provider>();
+  const [setupError, setSetupError] = useState<string>();
+  const triedCreate = useRef(false);
+
+  // A session can come back without its embedded wallet (e.g. creation didn't finish last
+  // time). Privy ignores login() while signed in, so create the wallet instead of leaving
+  // the user at a sign-in button that does nothing.
+  useEffect(() => {
+    if (!ready || !authenticated || !walletsReady || embedded || triedCreate.current) return;
+    triedCreate.current = true;
+    createWallet().catch((err: unknown) => setSetupError((err as Error)?.message ?? String(err)));
+  }, [ready, authenticated, walletsReady, embedded, createWallet]);
+
+  useEffect(() => {
+    if (!authenticated) {
+      triedCreate.current = false;
+      setSetupError(undefined);
+    }
+  }, [authenticated]);
 
   useEffect(() => {
     let live = true;
@@ -70,6 +92,8 @@ function PrivyWallet({ children }: { children: ReactNode }) {
       provider,
       login,
       logout: () => void logout(),
+      settingUp: authenticated && walletsReady && !embedded,
+      setupError,
       signMessage: async (message) => {
         if (!embedded) throw new Error('Wallet not ready yet');
         const { signature } = await signMessage(
@@ -82,7 +106,7 @@ function PrivyWallet({ children }: { children: ReactNode }) {
         await embedded?.switchChain(chainId);
       },
     }),
-    [ready, authenticated, walletsReady, embedded, provider, login, logout, signMessage],
+    [ready, authenticated, walletsReady, embedded, provider, login, logout, signMessage, setupError],
   );
   return <WalletContext.Provider value={api}>{children}</WalletContext.Provider>;
 }

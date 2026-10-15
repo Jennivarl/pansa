@@ -149,6 +149,27 @@ export function Dashboard() {
 
   if (!wallet.ready || !info) return <Shell><p className="muted">Loading…</p></Shell>;
 
+  if (!wallet.address && wallet.settingUp) {
+    return (
+      <Shell>
+        <div className="panel dash-card">
+          <h2>Seller dashboard</h2>
+          {wallet.setupError ? (
+            <>
+              <p className="call-error">Couldn't create your wallet: {wallet.setupError}</p>
+              <p className="muted">Sign out and sign in again to retry.</p>
+            </>
+          ) : (
+            <p className="busy">Signed in. Setting up your wallet…</p>
+          )}
+          <button className="btn" onClick={wallet.logout}>
+            Sign out
+          </button>
+        </div>
+      </Shell>
+    );
+  }
+
   if (!wallet.address) {
     return (
       <Shell>
