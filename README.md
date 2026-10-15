@@ -2,6 +2,8 @@
 
 **Private payments for AI agents on Arc.**
 
+**Live on Arc mainnet:** https://pansa-arc.vercel.app
+
 AI agents pay for data, tools and other agents in USDC, and every payment is public. Anyone can read an agent's wallet and copy its suppliers, or add up a seller's income and list its customers.
 
 PANSA sends each payment to a fresh **one-time stealth address** that only the seller can open. The explorer shows money leaving the agent, but not who received it.
@@ -16,9 +18,16 @@ On most chains a stealth address can't move what it receives: it holds tokens bu
 
 On Arc, **USDC is the gas token**, and its native and ERC-20 balances are the same balance. A stealth address pays its own fee out of the USDC it received. No relayer, no link.
 
-[On-chain proof](https://explorer.testnet.arc.io/tx/0x50791d14ae7f85451adf061d41e72e4be1046dd6971aab559c667c1f8209b13b): a one-time address sending USDC and paying $0.0018 gas from its own balance.
+[On-chain proof](https://explorer.arc.io/tx/0xc93e94cb3e7ebb859a37deb888061bb7cc731ef5146c339e0596e04483f71b35): a one-time address on Arc mainnet sending USDC and paying $0.0015 gas from its own balance.
 
 Arc also has Circle's x402 Facilitator, instant finality, and a privacy layer on the roadmap that PANSA is built to plug into.
+
+## Proven on Arc mainnet
+
+- **x402, three paid calls, three unrelated addresses:** [weather](https://explorer.arc.io/tx/0x4219269f27cfb43ad57d23d5e598666b4635f29fc9acf684017f9382ae79e555) · [news](https://explorer.arc.io/tx/0x06a8e212ba85676e462c60164da61a0ef55601468457b6102c9510a75a65abfe) · [signals](https://explorer.arc.io/tx/0x2ab18677b901279a0844bcdfdaa8046e5d2e379af5efe97fdb110c69ea6708f2)
+- **Free registry sign-up** (user signs, demo agent pays gas): [tx](https://explorer.arc.io/tx/0x3491113d5fd8dd52843b6edce2b1ab0bc6831c9808ebf31ae91cffcef6f560fb)
+- **Pay a wallet address privately** (registry lookup, then a fresh stealth address): [transfer](https://explorer.arc.io/tx/0x70f4fef738e19be04b9c145573c1baad7498c4cd5447b295efbdef742bc6d055) · [announcement](https://explorer.arc.io/tx/0xc571864ba92201c844ce0926d8eb331cf9f0ef6d37a373c599883940fcca1f95)
+- **A stealth address spending and paying its own gas ($0.0015) in USDC:** [tx](https://explorer.arc.io/tx/0xc93e94cb3e7ebb859a37deb888061bb7cc731ef5146c339e0596e04483f71b35)
 
 ## How it works
 
@@ -74,6 +83,7 @@ npm run build -w @pansa/web
 npm run api -w @pansa/demo        # http://localhost:4021
 npm run agent -w @pansa/demo      # agent buys from the paid API
 npm run seller -w @pansa/demo     # seller's private view of its payments
+npm run pay -w @pansa/demo -- <0xaddress | st:arc:0x…> 0.01   # pay a registered address or stealth ID
 ```
 
 For the dashboard's email login, set `VITE_PRIVY_APP_ID` in `apps/web/.env` before building. Without it, the dashboard falls back to a browser wallet.
@@ -120,6 +130,6 @@ const res = await pay('https://api.example/signals');
 
 ## Roadmap
 
-- **Now:** hidden receivers for x402 on Arc, seller add-on, paying fetch, Mode B, seller dashboard.
-- **Next:** announcements for x402 payments, registry lookup in the agent client, SDK on npm.
+- **Now:** hidden receivers for x402 on Arc, seller add-on, paying fetch with verified payee, pay-by-address via the registry, seller dashboard.
+- **Next:** announcements for x402 payments, SDK on npm.
 - **With Arc Privacy:** hidden amounts and selective disclosure with view keys, on the same stealth addresses.
