@@ -11,6 +11,7 @@ import {
 } from '@pansa/core';
 import { REGISTRY_ABI, lookupStealthId, registrationTypedData } from '@pansa/x402';
 import { getInfo, short, usd, type Info } from '../api';
+import { Logo } from '../Logo';
 import { arcChainFrom, publicClientFor } from './chain';
 import { findPayments, spendFromStealthAddress, type FoundPayment } from './payments';
 import { useWallet } from './wallet';
@@ -360,9 +361,10 @@ function Copy({ value, secret }: { value: string; secret?: boolean }) {
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <>
+      <div className="aurora" aria-hidden="true" />
       <header className="nav wrap">
-        <a className="logo" href="/">
-          PANSA
+        <a className="logo" href="/" aria-label="PANSA home">
+          <Logo />
         </a>
         <nav>
           <a href="/">Home</a>
