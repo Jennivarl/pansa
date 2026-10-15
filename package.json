@@ -1,0 +1,14 @@
+{
+  "name": "pansa",
+  "private": true,
+  "description": "Private payments for AI agents on Arc",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run build -w @pansa/core && npm run typecheck --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present"
+  }
+}

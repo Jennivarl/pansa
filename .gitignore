@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+
+# foundry
+contracts/out/
+contracts/cache/
+contracts/broadcast/
+
+# demo seller payment log (with the viewing key it reveals every payment)
+apps/demo/data/
