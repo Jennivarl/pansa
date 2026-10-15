@@ -3,9 +3,9 @@
  * own agent buys from it, and the announcement feed for the dashboard. Runs as a Node
  * server (api.ts) or a Vercel function (api/index.ts at the repo root).
  */
-import { Hono, type MiddlewareHandler } from 'hono';
+import { Hono, type Context, type MiddlewareHandler } from 'hono';
 import { streamSSE } from 'hono/streaming';
-import { createPublicClient, createWalletClient, erc20Abi, http, isAddress, type Hex } from 'viem';
+import { createPublicClient, createWalletClient, erc20Abi, http, isAddress, parseUnits, type Hex } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import {
   ARC_USDC,
@@ -92,6 +92,29 @@ const lastRunByIp = new Map<string, number>();
 let runsToday = { day: '', count: 0 };
 let running = 0;
 
+// ---- guards for the endpoints that spend the demo wallet ----
+
+/** Client IP as the platform reports it (a client can prepend its own x-forwarded-for hop). */
+const clientIp = (c: Context) =>
+  c.req.header('x-real-ip') ??
+  c.req.header('x-vercel-forwarded-for')?.split(',')[0].trim() ??
+  c.req.header('x-forwarded-for')?.split(',')[0].trim() ??
+  'local';
+
+/** Browsers label cross-site requests; refuse them so other pages can't spend through a visitor. */
+const crossSite = (c: Context) => {
+  const site = c.req.header('sec-fetch-site');
+  return site !== undefined && site !== 'same-origin';
+};
+
+/**
+ * Hard floor on the demo wallet. Per-IP limits live in each serverless instance's memory;
+ * this one is read from the chain, so it holds across all of them.
+ */
+const DEMO_RESERVE = parseUnits(process.env.DEMO_RESERVE_USDC ?? '0.25', 6);
+const lowOnFunds = async (cost: bigint) => !agent || (await usdcBalance(agent.address)) < DEMO_RESERVE + cost;
+const GAS_ALLOWANCE = 5_000n; // two transactions' worth of USDC gas, generously
+
 function allowRun(ip: string): string | undefined {
   const day = new Date().toISOString().slice(0, 10);
   if (runsToday.day !== day) runsToday = { day, count: 0 };
@@ -128,11 +151,16 @@ app.get('/api/info', async (c) => {
 
 app.get('/api/demo/run', (c) => {
   if (!agent) return c.json({ error: 'demo agent not configured' }, 503);
-  const ip = c.req.header('x-forwarded-for')?.split(',')[0].trim() ?? 'local';
-  const refused = allowRun(ip);
+  if (crossSite(c)) return c.json({ error: 'cross-site request refused' }, 403);
+  const refused = allowRun(clientIp(c));
   if (refused) return c.json({ error: refused }, 429);
 
+  const runCost = ENDPOINTS.reduce((sum, e) => sum + e.amount, 0n);
   return streamSSE(c, async (stream) => {
+    if (await lowOnFunds(runCost)) {
+      await stream.writeSSE({ event: 'fail', data: JSON.stringify({ error: 'The demo wallet is running low. Try again later.' }) });
+      return;
+    }
     running++;
     try {
       const send = (event: string, data: unknown) => stream.writeSSE({ event, data: JSON.stringify(data) });
@@ -225,12 +253,16 @@ app.post('/api/demo/pay-me', async (c) => {
     return c.json({ error: 'invalid stealth ID' }, 400);
   }
 
-  const ip = c.req.header('x-forwarded-for')?.split(',')[0].trim() ?? 'local';
+  if (crossSite(c)) return c.json({ error: 'cross-site request refused' }, 403);
+  const ip = clientIp(c);
   const day = new Date().toISOString().slice(0, 10);
   if (payMeToday.day !== day) payMeToday = { day, count: 0 };
   if (payMeToday.count >= PAY_ME_DAILY_CAP) return c.json({ error: 'Daily demo limit reached. Try again tomorrow.' }, 429);
   if (Date.now() - (lastPayMeByIp.get(ip) ?? 0) < PAY_ME_COOLDOWN_MS) {
     return c.json({ error: 'One test payment a minute, please.' }, 429);
+  }
+  if (await lowOnFunds(PAY_ME_AMOUNT + GAS_ALLOWANCE)) {
+    return c.json({ error: 'The demo wallet is running low. Try again later.' }, 503);
   }
   lastPayMeByIp.set(ip, Date.now());
   payMeToday.count++;
@@ -250,6 +282,7 @@ app.post('/api/demo/pay-me', async (c) => {
 // ---- free registry sign-up: the user signs, the demo agent pays the gas ----
 
 const lastRegisterByIp = new Map<string, number>();
+let registerToday = { day: '', count: 0 };
 
 app.post('/api/demo/register', async (c) => {
   if (!agent) return c.json({ error: 'demo agent not configured' }, 503);
@@ -270,11 +303,17 @@ app.post('/api/demo/register', async (c) => {
   if (existing && stealthMetaAddressToBytes(existing) === stealthMetaAddressToBytes(target)) {
     return c.json({ alreadyRegistered: true });
   }
-  const ip = c.req.header('x-forwarded-for')?.split(',')[0].trim() ?? 'local';
+  if (crossSite(c)) return c.json({ error: 'cross-site request refused' }, 403);
+  const ip = clientIp(c);
+  const day = new Date().toISOString().slice(0, 10);
+  if (registerToday.day !== day) registerToday = { day, count: 0 };
+  if (registerToday.count >= PAY_ME_DAILY_CAP) return c.json({ error: 'Daily demo limit reached. Try again tomorrow.' }, 429);
   if (Date.now() - (lastRegisterByIp.get(ip) ?? 0) < PAY_ME_COOLDOWN_MS) {
     return c.json({ error: 'One registration a minute, please.' }, 429);
   }
+  if (await lowOnFunds(GAS_ALLOWANCE)) return c.json({ error: 'The demo wallet is running low. Try again later.' }, 503);
   lastRegisterByIp.set(ip, Date.now());
+  registerToday.count++;
 
   try {
     const wallet = createWalletClient({ account: agent, chain: arcChain, transport: http() });
