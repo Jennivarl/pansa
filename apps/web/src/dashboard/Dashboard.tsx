@@ -9,7 +9,7 @@ import {
   stealthMetaAddressToBytes,
   type StealthKeys,
 } from '@pansa/core';
-import { REGISTRY_ABI, lookupStealthId } from '@pansa/x402';
+import { REGISTRY_ABI, lookupStealthId, registrationTypedData } from '@pansa/x402';
 import { getInfo, short, usd, type Info } from '../api';
 import { arcChainFrom, publicClientFor } from './chain';
 import { findPayments, spendFromStealthAddress, type FoundPayment } from './payments';
@@ -104,16 +104,36 @@ export function Dashboard() {
 
   async function register() {
     if (!keys || !chain || !client || !wallet.provider || !wallet.address) return;
+    const meta = getStealthMetaAddress(keys);
+    const walletClient = createWalletClient({ account: wallet.address, chain, transport: custom(wallet.provider) });
     await run('Registering your stealth ID…', async () => {
       await wallet.switchChain?.(chain.id);
-      const walletClient = createWalletClient({ account: wallet.address!, chain, transport: custom(wallet.provider!) });
-      const hash = await walletClient.writeContract({
-        address: info!.contracts.registry,
-        abi: REGISTRY_ABI,
-        functionName: 'registerKeys',
-        args: [SCHEME_ID, stealthMetaAddressToBytes(getStealthMetaAddress(keys))],
+      if (walletBalance && walletBalance > 0n) {
+        const hash = await walletClient.writeContract({
+          address: info!.contracts.registry,
+          abi: REGISTRY_ABI,
+          functionName: 'registerKeys',
+          args: [SCHEME_ID, stealthMetaAddressToBytes(meta)],
+        });
+        await client.waitForTransactionReceipt({ hash });
+        return;
+      }
+      // No USDC for the fee: sign the registration, our demo agent submits it.
+      const typed = await registrationTypedData({
+        publicClient: client,
+        registrant: wallet.address!,
+        meta,
+        chainId: chain.id,
+        registry: info!.contracts.registry,
       });
-      await client.waitForTransactionReceipt({ hash });
+      const signature = await walletClient.signTypedData({ account: wallet.address!, ...typed });
+      const res = await fetch('/api/demo/register', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ registrant: wallet.address, signature, stealthId }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`);
     });
     await refresh();
   }
@@ -184,13 +204,8 @@ export function Dashboard() {
                   : 'Optional: register it on Arc so agents can find it from your wallet address.'}
               </p>
               {!registered && (
-                <button
-                  className="btn"
-                  onClick={register}
-                  disabled={!!busy || !wallet.provider || walletBalance === 0n}
-                  title={walletBalance === 0n ? 'Your wallet needs a little USDC for the fee' : undefined}
-                >
-                  Register on Arc{walletBalance === 0n ? ' (needs a little USDC)' : ''}
+                <button className="btn" onClick={register} disabled={!!busy || !wallet.provider}>
+                  {walletBalance === 0n ? 'Register free (we pay the fee)' : 'Register on Arc'}
                 </button>
               )}
             </div>

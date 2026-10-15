@@ -6,7 +6,7 @@
 import { join } from 'node:path';
 import { Hono, type MiddlewareHandler } from 'hono';
 import { streamSSE } from 'hono/streaming';
-import { createPublicClient, createWalletClient, erc20Abi, http } from 'viem';
+import { createPublicClient, createWalletClient, erc20Abi, http, isAddress, type Hex } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import {
   ARC_USDC,
@@ -16,12 +16,15 @@ import {
   decodeStealthMetaAddress,
   encodeStealthMetaAddress,
   getStealthMetaAddress,
+  stealthMetaAddressToBytes,
 } from '@pansa/core';
 import {
   CircleFacilitator,
   HEADER_PAYMENT_SIGNATURE,
   StealthSeller,
   createPayingFetch,
+  lookupStealthId,
+  registerOnBehalf,
   sendStealthPayment,
 } from '@pansa/x402';
 import { JsonFilePaymentStore } from '@pansa/x402/node';
@@ -223,6 +226,53 @@ app.post('/api/demo/pay-me', async (c) => {
   } catch (err) {
     console.error('pay-me failed:', (err as Error).message);
     return c.json({ error: 'Payment failed. Try again in a minute.' }, 502);
+  }
+});
+
+// ---- free registry sign-up: the user signs, the demo agent pays the gas ----
+
+const lastRegisterByIp = new Map<string, number>();
+
+app.post('/api/demo/register', async (c) => {
+  if (!agent) return c.json({ error: 'demo agent not configured' }, 503);
+  const body = await c.req
+    .json<{ registrant?: string; signature?: string; stealthId?: string }>()
+    .catch(() => ({}) as { registrant?: string; signature?: string; stealthId?: string });
+  if (!body.registrant || !isAddress(body.registrant) || !body.signature?.startsWith('0x')) {
+    return c.json({ error: 'registrant and signature required' }, 400);
+  }
+  let target;
+  try {
+    target = decodeStealthMetaAddress(body.stealthId ?? '');
+  } catch {
+    return c.json({ error: 'invalid stealth ID' }, 400);
+  }
+
+  const existing = await lookupStealthId(chain, body.registrant);
+  if (existing && stealthMetaAddressToBytes(existing) === stealthMetaAddressToBytes(target)) {
+    return c.json({ alreadyRegistered: true });
+  }
+  const ip = c.req.header('x-forwarded-for')?.split(',')[0].trim() ?? 'local';
+  if (Date.now() - (lastRegisterByIp.get(ip) ?? 0) < PAY_ME_COOLDOWN_MS) {
+    return c.json({ error: 'One registration a minute, please.' }, 429);
+  }
+  lastRegisterByIp.set(ip, Date.now());
+
+  try {
+    const wallet = createWalletClient({ account: agent, chain: arcChain, transport: http() });
+    const hash = await registerOnBehalf({
+      wallet,
+      publicClient: chain,
+      registrant: body.registrant,
+      meta: target,
+      signature: body.signature as Hex,
+    });
+    console.log(`registered ${body.registrant} ${txUrl(hash)}`);
+    return c.json({ transaction: hash });
+  } catch (err) {
+    const message = (err as Error).message;
+    console.error('register failed:', message);
+    return c.json({ error: message.includes('signature') ? 'Signature does not match this wallet.' : 'Registration failed.' }, 400);
   }
 });
 
