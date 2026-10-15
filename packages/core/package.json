@@ -1,0 +1,29 @@
+{
+  "name": "@pansa/core",
+  "version": "0.1.0",
+  "description": "ERC-5564 stealth addresses (scheme 1, secp256k1) for PANSA",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@noble/curves": "~1.9.7",
+    "@noble/hashes": "~1.8.0"
+  },
+  "devDependencies": {
+    "@scopelift/stealth-address-sdk": "^1.0.0-beta.5",
+    "typescript": "^5.8.3",
+    "viem": "^2.31.0",
+    "vitest": "^4.1.11"
+  }
+}
