@@ -36,6 +36,7 @@ export const PANSA_ANNOUNCER = '0xb040Ee2a26cbBf36899aaB2aEdEBA7f7B1CC4D85' as c
 export const PANSA_REGISTRY = '0x974caaa9b4c3A0eff11E0a5b65aa36C41b8EaC1F' as const;
 /** First block worth scanning for announcements, per chain id. */
 export const PANSA_DEPLOY_BLOCK: Record<number, bigint> = {
+  5042: 26018575n,
   5042002: 67250688n,
 };
 

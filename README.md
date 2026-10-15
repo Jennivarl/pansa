@@ -48,10 +48,10 @@ The payer derives the one-time address from the receiver's public stealth ID (sh
 
 Deployed through Arc's CREATE2 factory with salt `keccak256("pansa.v1")`, so the addresses match on every network.
 
-| Contract | Address |
-|---|---|
-| ERC5564Announcer | `0xb040Ee2a26cbBf36899aaB2aEdEBA7f7B1CC4D85` |
-| ERC6538Registry | `0x974caaa9b4c3A0eff11E0a5b65aa36C41b8EaC1F` |
+| Contract | Address | Arc mainnet | Arc testnet |
+|---|---|---|---|
+| ERC5564Announcer | `0xb040Ee2a26cbBf36899aaB2aEdEBA7f7B1CC4D85` | [explorer](https://explorer.arc.io/address/0xb040Ee2a26cbBf36899aaB2aEdEBA7f7B1CC4D85) | [explorer](https://explorer.testnet.arc.io/address/0xb040Ee2a26cbBf36899aaB2aEdEBA7f7B1CC4D85) |
+| ERC6538Registry | `0x974caaa9b4c3A0eff11E0a5b65aa36C41b8EaC1F` | [explorer](https://explorer.arc.io/address/0x974caaa9b4c3A0eff11E0a5b65aa36C41b8EaC1F) | [explorer](https://explorer.testnet.arc.io/address/0x974caaa9b4c3A0eff11E0a5b65aa36C41b8EaC1F) |
 
 ## Run it
 
