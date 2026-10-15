@@ -11,7 +11,8 @@ import {
   type Hex,
   type StealthMetaAddress,
 } from '@pansa/core';
-import { isAddressEqual } from 'viem';
+import { isAddressEqual, type Chain } from 'viem';
+import { announceFromStealthAddress, type AnnounceFromStealthArgs } from './direct.js';
 import { decodeHeader, encodeHeader } from './encoding.js';
 import { isSignedByPayer } from './eip3009.js';
 import { FacilitatorError, type Facilitator } from './facilitator.js';
@@ -46,6 +47,20 @@ export interface StealthSellerOptions {
   assetVersion?: string;
   maxTimeoutSeconds?: number;
   now?: () => number;
+  /**
+   * Announce each payment on-chain (ERC-5564) so the seller's wallet finds it by scanning,
+   * like direct payments. The one-time address announces itself and pays the ~$0.002 fee
+   * from what it received, so this needs `spendingKey` and skips payments below `minAmount`.
+   */
+  announce?: {
+    chain: Chain;
+    rpcUrl?: string;
+    /** Atomic units; default 10_000 ($0.01), since smaller payments wouldn't cover the fee. */
+    minAmount?: bigint;
+    onError?: (err: unknown) => void;
+    /** Override for tests. */
+    send?: (args: AnnounceFromStealthArgs) => Promise<Hex>;
+  };
 }
 
 export interface Price {
@@ -72,6 +87,9 @@ export class StealthSeller {
   constructor(private readonly opts: StealthSellerOptions) {
     if (opts.facilitator.needsPayToKey && !opts.spendingKey) {
       throw new Error('this facilitator signs with the payTo key: pass spendingKey, or use an API key');
+    }
+    if (opts.announce && !opts.spendingKey) {
+      throw new Error('announce needs spendingKey: the one-time address signs its own announcement');
     }
     this.store = opts.store ?? new MemoryPaymentStore();
     this.asset = opts.asset ?? ARC_USDC;
@@ -125,18 +143,14 @@ export class StealthSeller {
     const authorizationId = `${exact.authorization.from.toLowerCase()}:${exact.authorization.nonce.toLowerCase()}`;
     if (!(await this.store.claim(authorizationId))) return this.reject(price, 'payment already used');
 
+    const stealthKey = this.opts.spendingKey
+      ? computeStealthPrivateKey(pansa.ephemeralPublicKey, { spendingKey: this.opts.spendingKey, viewingKey: this.opts.viewingKey })
+      : undefined;
     let settlement: SettlementResponse;
     try {
       settlement = await this.opts.facilitator.settle(
         { x402Version: X402_VERSION, paymentPayload: payload, paymentRequirements: accepted },
-        {
-          payToPrivateKey: this.opts.spendingKey
-            ? computeStealthPrivateKey(pansa.ephemeralPublicKey, {
-                spendingKey: this.opts.spendingKey,
-                viewingKey: this.opts.viewingKey,
-              })
-            : undefined,
-        },
+        { payToPrivateKey: stealthKey },
       );
     } catch (err) {
       await this.store.release(authorizationId);
@@ -163,6 +177,23 @@ export class StealthSeller {
       authorizationId,
       receivedAt: new Date(this.now() * 1000).toISOString(),
     };
+    const ann = this.opts.announce;
+    if (ann && stealthKey && BigInt(payment.amount) >= (ann.minAmount ?? 10_000n)) {
+      try {
+        payment.announcement = await (ann.send ?? announceFromStealthAddress)({
+          stealthPrivateKey: stealthKey,
+          ephemeralPublicKey: pansa.ephemeralPublicKey,
+          viewTag: pansa.viewTag,
+          amount: BigInt(payment.amount),
+          asset: payment.asset,
+          chain: ann.chain,
+          rpcUrl: ann.rpcUrl,
+        });
+      } catch (err) {
+        // The payment is settled either way; the store still lets the seller find it.
+        ann.onError?.(err);
+      }
+    }
     await this.store.add(payment);
     return { paid: true, payment, headers: { [HEADER_PAYMENT_RESPONSE]: encodeHeader(settlement) } };
   }

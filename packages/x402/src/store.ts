@@ -14,6 +14,8 @@ export interface ReceivedPayment {
   resource: string;
   /** `${payer}:${authorizationNonce}`, guards against double fulfilment. */
   authorizationId: string;
+  /** ERC-5564 announcement tx, when the seller announces x402 payments on-chain. */
+  announcement?: Hex;
   receivedAt: string;
 }
 

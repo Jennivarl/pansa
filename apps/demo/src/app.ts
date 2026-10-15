@@ -43,6 +43,15 @@ const seller = new StealthSeller({
   network: NET.caip2,
   facilitator: new CircleFacilitator({ apiKey }),
   store,
+  // Announce payments big enough to cover the ~$0.002 announcement fee, so they show up in
+  // the seller's dashboard. Needs the spending key, so only in keyless-trial mode.
+  announce: apiKey
+    ? undefined
+    : {
+        chain: arcChain,
+        minAmount: parseUnits(process.env.ANNOUNCE_MIN_USDC ?? '0.01', 6),
+        onError: (err) => console.error('announce failed:', (err as Error).message),
+      },
 });
 
 /** Mainnet prices are 10x lower: the live demo spends real money. */

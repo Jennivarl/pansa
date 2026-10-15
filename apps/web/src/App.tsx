@@ -133,11 +133,11 @@ export function App() {
           <ol className="timeline">
             <li className="done">
               <span className="tag now">Now</span>
-              <p>Hidden receivers for x402 on Arc, verified payee, pay-by-address via the registry, seller dashboard.</p>
+              <p>Hidden receivers for x402 on Arc, verified payee, pay-by-address, on-chain announcements, seller dashboard.</p>
             </li>
             <li>
               <span className="tag">Next</span>
-              <p>SDK on npm, announcements for x402 payments.</p>
+              <p>SDK on npm, so any x402 API or agent can add private payments.</p>
             </li>
             <li>
               <span className="tag">Arc Privacy</span>

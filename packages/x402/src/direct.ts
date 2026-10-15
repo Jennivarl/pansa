@@ -3,10 +3,12 @@
  * one-time address, sends USDC to it, and announces the ephemeral key on-chain (ERC-5564)
  * so the receiver can find it by scanning with their viewing key.
  */
-import { erc20Abi, verifyTypedData, type Account, type Chain, type Hex, type PublicClient, type Transport, type WalletClient } from 'viem';
+import { createWalletClient, erc20Abi, http, verifyTypedData, type Account, type Chain, type Hex, type PublicClient, type Transport, type WalletClient } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
 import {
   ARC_USDC,
   ERC20_TRANSFER_SELECTOR,
+  TRANSFER_WITH_AUTHORIZATION_SELECTOR,
   PANSA_ANNOUNCER,
   PANSA_REGISTRY,
   SCHEME_ID,
@@ -226,4 +228,38 @@ export async function registerOnBehalf(args: {
   const receipt = await args.publicClient.waitForTransactionReceipt({ hash });
   if (receipt.status !== 'success') throw new Error(`registration reverted: ${hash}`);
   return hash;
+}
+
+export interface AnnounceFromStealthArgs {
+  /** Key of the one-time address; it signs and pays the fee from the USDC it holds (Arc). */
+  stealthPrivateKey: Hex;
+  ephemeralPublicKey: Hex;
+  viewTag: number;
+  amount: bigint;
+  chain: Chain;
+  rpcUrl?: string;
+  asset?: Hex;
+  announcer?: Hex;
+}
+
+/**
+ * Announces a payment that already landed (e.g. an x402 settlement) from the stealth address
+ * itself, so the receiver can find it by scanning. The caller is that one-time address, so the
+ * announcement links nothing to the seller.
+ */
+export async function announceFromStealthAddress(args: AnnounceFromStealthArgs): Promise<Hex> {
+  const account = privateKeyToAccount(args.stealthPrivateKey);
+  const asset = args.asset ?? ARC_USDC;
+  const wallet = createWalletClient({ account, chain: args.chain, transport: http(args.rpcUrl) });
+  return wallet.writeContract({
+    address: args.announcer ?? PANSA_ANNOUNCER,
+    abi: ANNOUNCER_ABI,
+    functionName: 'announce',
+    args: [
+      SCHEME_ID,
+      account.address,
+      args.ephemeralPublicKey,
+      encodeAnnouncementMetadata({ viewTag: args.viewTag, selector: TRANSFER_WITH_AUTHORIZATION_SELECTOR, token: asset, amount: args.amount }),
+    ],
+  });
 }

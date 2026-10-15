@@ -432,3 +432,60 @@ describe('agent client safety', () => {
     expect(validFor).toBeGreaterThan(250);
   });
 });
+
+describe('on-chain announcements for x402 payments', () => {
+  const arc = {
+    id: 5042002,
+    name: 'Arc Testnet',
+    nativeCurrency: { name: 'USDC', symbol: 'USDC', decimals: 18 },
+    rpcUrls: { default: { http: ['https://rpc.testnet.arc.io'] } },
+  } as const;
+  type SendArgs = Parameters<NonNullable<NonNullable<ConstructorParameters<typeof StealthSeller>[0]['announce']>['send']>>[0];
+
+  it('the one-time address announces its own payment', async () => {
+    const sent: SendArgs[] = [];
+    const seller = makeSeller(mockCircle().fetchFn, {
+      announce: { chain: arc, send: async (a) => { sent.push(a); return `0x${'cd'.repeat(32)}`; } },
+    });
+    expect((await pay(seller, await signedPayload(seller))).status).toBe(200);
+    const [p] = await seller.store.list();
+    expect(sent).toHaveLength(1);
+    expect(privateKeyToAddress(sent[0].stealthPrivateKey)).toBe(p.stealthAddress);
+    expect(sent[0].ephemeralPublicKey).toBe(p.ephemeralPublicKey);
+    expect(sent[0].viewTag).toBe(p.viewTag);
+    expect(sent[0].amount).toBe(10_000n);
+    expect(p.announcement).toBe(`0x${'cd'.repeat(32)}`);
+  });
+
+  it('skips payments too small to cover the fee', async () => {
+    let calls = 0;
+    const seller = makeSeller(mockCircle().fetchFn, {
+      announce: { chain: arc, minAmount: 20_000n, send: async () => { calls++; return '0x'; } },
+    });
+    expect((await pay(seller, await signedPayload(seller))).status).toBe(200);
+    expect(calls).toBe(0);
+  });
+
+  it('a failed announcement still serves the paid request', async () => {
+    const errors: unknown[] = [];
+    const seller = makeSeller(mockCircle().fetchFn, {
+      announce: { chain: arc, send: async () => { throw new Error('rpc down'); }, onError: (e) => errors.push(e) },
+    });
+    expect((await pay(seller, await signedPayload(seller))).status).toBe(200);
+    expect(errors).toHaveLength(1);
+    expect((await seller.store.list())[0].announcement).toBeUndefined();
+  });
+
+  it('needs the spending key', () => {
+    expect(
+      () =>
+        new StealthSeller({
+          meta,
+          viewingKey: sellerKeys.viewingKey,
+          network: NETWORK,
+          facilitator: new CircleFacilitator({ apiKey: 'k', fetch: mockCircle().fetchFn }),
+          announce: { chain: arc },
+        }),
+    ).toThrow(/spendingKey/);
+  });
+});
