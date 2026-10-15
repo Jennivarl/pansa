@@ -50,13 +50,7 @@ export function App() {
           </div>
           {info && (
             <p className="stats">
-              <span>
-                <b>{info.stats.payments}</b> private payments
-              </span>
-              <span>
-                <b>{usd(info.stats.volume)}</b> settled
-              </span>
-              <span className={info.mainnet ? 'net main' : 'net'}>{info.networkName}</span>
+              <span className={info.mainnet ? 'net main' : 'net'}>Live on {info.mainnet ? 'Arc mainnet' : info.networkName}</span>
             </p>
           )}
         </section>
