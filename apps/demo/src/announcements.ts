@@ -9,7 +9,12 @@ import type { Hex, PublicClient } from 'viem';
 import { ARC_MAX_LOG_RANGE } from '@pansa/core';
 import { ANNOUNCER_ABI } from '@pansa/x402';
 
-const SYNC_CONCURRENCY = 8;
+export interface IndexOptions {
+  /** Blocks per eth_getLogs call; depends on the RPC (Arc's primary allows 5k). */
+  maxRange?: bigint;
+  /** Parallel getLogs calls. Keep low: public RPCs rate-limit shared serverless IPs. */
+  concurrency?: number;
+}
 
 export interface IndexedAnnouncement {
   schemeId: string;
@@ -40,6 +45,7 @@ export class AnnouncementIndex {
     private readonly announcer: Hex,
     fromBlock: bigint,
     private readonly file: string,
+    private readonly opts: IndexOptions = {},
   ) {
     this.nextBlock = fromBlock;
   }
@@ -81,15 +87,17 @@ export class AnnouncementIndex {
   /** Catches up to the chain head in RPC-sized chunks, a few at a time. Not reentrant: use ensureFresh. */
   async sync() {
     this.head = await this.client.getBlockNumber();
+    const step = this.opts.maxRange ?? ARC_MAX_LOG_RANGE;
+    const concurrency = this.opts.concurrency ?? 2;
     const ranges: [bigint, bigint][] = [];
-    for (let from = this.nextBlock; from <= this.head; from += ARC_MAX_LOG_RANGE) {
-      const to = from + ARC_MAX_LOG_RANGE - 1n;
+    for (let from = this.nextBlock; from <= this.head; from += step) {
+      const to = from + step - 1n;
       ranges.push([from, to < this.head ? to : this.head]);
     }
     let found = 0;
-    for (let i = 0; i < ranges.length; i += SYNC_CONCURRENCY) {
+    for (let i = 0; i < ranges.length; i += concurrency) {
       const batch = await Promise.all(
-        ranges.slice(i, i + SYNC_CONCURRENCY).map(([fromBlock, toBlock]) =>
+        ranges.slice(i, i + concurrency).map(([fromBlock, toBlock]) =>
           this.client.getContractEvents({
             address: this.announcer,
             abi: ANNOUNCER_ABI,
@@ -111,7 +119,7 @@ export class AnnouncementIndex {
         });
         found++;
       }
-      this.nextBlock = ranges[Math.min(i + SYNC_CONCURRENCY, ranges.length) - 1][1] + 1n;
+      this.nextBlock = ranges[Math.min(i + concurrency, ranges.length) - 1][1] + 1n;
     }
     this.syncedAt = Date.now();
     if (found > 0) await this.save().catch(() => {});
@@ -119,6 +127,11 @@ export class AnnouncementIndex {
 
   list() {
     return { head: this.head.toString(), announcements: this.announcements };
+  }
+
+  /** True once at least one sync reached the chain head (the list is complete up to `head`). */
+  get synced() {
+    return this.syncedAt > 0;
   }
 
   private async load() {

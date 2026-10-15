@@ -179,16 +179,32 @@ app.get('/api/demo/run', (c) => {
 
 // ---- Mode B: the agent pays a stealth ID directly and announces it on-chain ----
 
+// Log reads go to an RPC with a wide eth_getLogs range (Blockdaemon allows 100k blocks on
+// mainnet vs 5k on the primary), with retries: public RPCs rate-limit shared serverless IPs.
+const LOGS_RPC = process.env.ARC_LOGS_RPC_URL ?? (IS_MAINNET ? 'https://rpc.blockdaemon.mainnet.arc.io' : undefined);
+const logsClient = LOGS_RPC
+  ? createPublicClient({ chain: arcChain, transport: http(LOGS_RPC, { retryCount: 5, retryDelay: 500 }) })
+  : chain;
+
 export const announcements = new AnnouncementIndex(
-  chain,
+  logsClient,
   PANSA_ANNOUNCER,
   PANSA_DEPLOY_BLOCK[NET.id] ?? 0n,
   dataFile('announcements'),
+  LOGS_RPC ? { maxRange: 99_999n, concurrency: 2 } : { concurrency: 2 },
 );
 
 /** Every announcement: the browser matches them with a viewing key it never sends us. */
 app.get('/api/announcements', async (c) => {
-  await announcements.ensureFresh();
+  try {
+    await announcements.ensureFresh();
+  } catch (err) {
+    console.error('announcements sync failed:', (err as Error).message);
+    // Serve what we have rather than failing; a fresh instance has nothing to serve yet.
+    if (!announcements.synced) return c.json({ error: 'Arc RPC is busy. Try again in a few seconds.' }, 503);
+  }
+  // Let the CDN absorb repeat reads; the list only grows, so a few seconds of staleness is fine.
+  c.header('Cache-Control', 'public, s-maxage=5, stale-while-revalidate=60');
   return c.json(announcements.list());
 });
 
