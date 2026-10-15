@@ -5,7 +5,8 @@ import { ARC_MAINNET, ARC_TESTNET } from '@pansa/core';
 export const ENV_PATH = fileURLToPath(new URL('../.env', import.meta.url));
 
 try {
-  process.loadEnvFile(ENV_PATH);
+  // ARC_NETWORK=mainnet in the shell picks the mainnet key file.
+  process.loadEnvFile(process.env.ARC_NETWORK === 'mainnet' ? `${ENV_PATH}.mainnet` : ENV_PATH);
 } catch {
   // no .env file: rely on the real environment (or run `npm run setup -w @pansa/demo`)
 }
