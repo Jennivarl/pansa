@@ -12,6 +12,29 @@ PANSA sends each payment to a fresh **one-time stealth address** that only the s
 - Standard **ERC-5564** stealth addresses and **ERC-6538** registry. Compatible with ScopeLift's stealth-address SDK.
 - **Non-custodial.** The contracts have no owner, no admin and hold no funds.
 
+## Try it in 3 minutes
+
+No wallet, no USDC and no setup needed. Everything below runs on **Arc mainnet** with real transactions.
+
+**Part 1: watch an agent pay privately**
+
+1. Open **https://pansapay.xyz**.
+2. Scroll to **Live demo** and click **Run agent**. A real AI agent buys three API calls and pays for each one with x402.
+3. Watch each call turn **paid ✓**. Under each one you'll see the **one-time address** it paid.
+4. Compare the two boxes on the right. **Normal x402**: every payment goes to the same seller wallet. **With PANSA**: three unrelated addresses.
+5. Click any one-time address. The Arc explorer shows a fresh address with no history and nothing pointing to the seller.
+
+**Part 2: be the seller**
+
+1. Click **Dashboard** (top right), then **Sign in with email**. Enter the code from your inbox. A wallet is created for you.
+2. Click **Sign to unlock**. One signature creates your stealth keys in your browser. It costs nothing and the keys never reach our server.
+3. Under **Your stealth ID** is the address you'd share to get paid privately. Optionally, click **Register free** to publish it on Arc. You sign and our demo agent pays the fee.
+4. Click **Send me a test payment**. Our agent pays your stealth ID $0.005 on mainnet, to a brand-new address made from it.
+5. After about 10 seconds the payment appears under **Payments to you**. Only your viewing key could find it.
+6. Click **Send** on the payment, paste any address and leave the amount blank. The network fee comes out of the one-time address's own USDC: that's the Arc part. Click **tx** to see it on the explorer.
+
+Limits keep the demo wallet safe: one agent run every 20 seconds and one test payment a minute per visitor.
+
 ## Why Arc
 
 On most chains a stealth address can't move what it receives: it holds tokens but no ETH for gas, and topping it up from another wallet links it to its owner. Workarounds need relayers.
@@ -131,6 +154,6 @@ const res = await pay('https://api.example/signals');
 
 ## Roadmap
 
-- **Now:** hidden receivers for x402 on Arc, seller add-on, paying fetch with verified payee, pay-by-address via the registry, seller dashboard.
-- **Next:** announcements for x402 payments, SDK on npm.
+- **Now:** hidden receivers for x402 on Arc, seller add-on, paying fetch with verified payee, pay-by-address via the registry, on-chain announcements for x402 payments, seller dashboard.
+- **Next:** SDK on npm.
 - **With Arc Privacy:** hidden amounts and selective disclosure with view keys, on the same stealth addresses.
